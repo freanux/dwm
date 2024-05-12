@@ -4,29 +4,26 @@
 
 /* appearance */
 static const unsigned int borderpx  = 3;        /* border pixel of windows */
-static const unsigned int gappx     = 14;        /* gaps between windows */
+static const unsigned int gappx     = 12;        /* gaps between windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const unsigned int systraypinning = 0;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
 static const unsigned int systrayonleft = 0;    /* 0: systray in the right corner, >0: systray on left of status text */
 static const unsigned int systrayspacing = 6;   /* systray spacing */
-static const unsigned int margin = 5;           /* upper and lower statusbar margins */
+static const unsigned int margin = 7;           /* upper and lower statusbar margins */
 static const int systraypinningfailfirst = 1;   /* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
 static const int showsystray        = 1;        /* 0 means no systray */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const char *fonts[]          = { "Monofoki Nerd Font:size=14" };
 static const char dmenufont[]       = "monospace:size=10";
-static const char col_gray1[]       = "#222222";
+static const char col_gray1[]       = "#1e1e2e";
 static const char col_gray2[]       = "#444444";
 static const char col_gray3[]       = "#bbbbbb";
 static const char col_gray4[]       = "#eeeeee";
 static const char col_title[]       = "#eeeeee";
 static const char col_cyan[]        = "#005577";
-static const char col_menu[]        = "#0f0f0f";
-//static const char col_active[]      = "#4444aa";  // bluish
-//static const char col_active[]      = "#fde860";  // yellow
-//static const char col_active[]      = "#88c0d0";  // blue
-static const char col_active[]      = "#823b46";
+static const char col_menu[]        = "#121221";
+static const char col_active[]      = "#63aeed";
 static const char col_inactive[]    = "#434c5e";
 static const char *colors[][3]      = {
 	/*                fg         bg         border   */
@@ -52,7 +49,6 @@ static const Rule rules[] = {
 	 *	WM_NAME(STRING) = title
 	 */
 	/* class                instance    title       tags mask   iscentered      isfloating      monitor */
-	// { "Gimp",               NULL,       NULL,       0,          0,              1,              -1 },
 	{ "Firefox",            NULL,       NULL,       1 << 8,     0,              0,              -1 },
 	{ "fnb_release",        NULL,       NULL,       0,          0,              1,              -1 },
     { "gnome-calculator",   NULL,       NULL,       0,          1,              1,              -1 },
