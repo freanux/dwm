@@ -37,3 +37,4 @@ LDFLAGS  = ${LIBS}
 
 # compiler and linker
 CC = cc
+STRIP = strip
