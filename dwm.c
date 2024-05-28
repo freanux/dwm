@@ -93,6 +93,7 @@ typedef struct {
 	unsigned int click;
 	unsigned int mask;
 	unsigned int button;
+    unsigned int index;
 	void (*func)(const Arg *arg);
 	const Arg arg;
 } Button;
@@ -274,11 +275,14 @@ static int xerrordummy(Display *dpy, XErrorEvent *ee);
 static int xerrorstart(Display *dpy, XErrorEvent *ee);
 static void zoom(const Arg *arg);
 
+#define STATUS_WIDTH_SIZE 32
+
 /* variables */
+static int status_width[STATUS_WIDTH_SIZE]; /* pure text width, w/o control characters */
+static int total_status_width = 0;
 static Systray *systray = NULL;
 static const char broken[] = "broken";
 static char stext[1024];
-static int status_width = 0; /* pure text width, w/o control characters */
 static int screen;
 static int sw, sh;           /* X display screen geometry width, height */
 static int bh;               /* bar height */
@@ -463,13 +467,14 @@ attachstack(Client *c)
 void
 buttonpress(XEvent *e)
 {
-	unsigned int i, x, click;
+	unsigned int i, x, click, index;
 	Arg arg = {0};
 	Client *c;
 	Monitor *m;
 	XButtonPressedEvent *ev = &e->xbutton;
 
 	click = ClkRootWin;
+    index = 0;
 	/* focus monitor if necessary */
 	if ((m = wintomon(ev->window)) && m != selmon) {
 		unfocus(selmon->sel, 1);
@@ -486,9 +491,20 @@ buttonpress(XEvent *e)
 			arg.ui = 1 << i;
 		} else if (ev->x < x + TEXTW(selmon->ltsymbol))
 			click = ClkLtSymbol;
-		else if (ev->x > selmon->ww - status_width - getsystraywidth())
-			click = ClkStatusText;
-		else
+		else if (ev->x > selmon->ww - total_status_width - getsystraywidth()) {
+            int tx = selmon->ww - total_status_width - getsystraywidth();
+            int tw = 0;
+            for (i = 0; i < STATUS_WIDTH_SIZE; ++i) {
+                if (status_width[i] == 0)
+                    break;
+                tw += status_width[i];
+                if (ev->x < tx + tw) {
+                    index = i;
+                    click = ClkStatusText;
+                    break;
+                }
+            }
+        } else
 			click = ClkWinTitle;
 	} else if ((c = wintoclient(ev->window))) {
 		focus(c);
@@ -498,6 +514,7 @@ buttonpress(XEvent *e)
 	}
 	for (i = 0; i < LENGTH(buttons); i++)
 		if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
+        && (buttons[i].click != ClkStatusText || buttons[i].index == index)
 		&& CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state))
 			buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
 }
@@ -815,6 +832,12 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 	p = text;
 	memcpy(text, stext, len);
 
+    /* zero status widths */
+    for (int i = 0; i < STATUS_WIDTH_SIZE; ++i) {
+        status_width[i] = 0;
+    }
+    int csi = 0;
+
 	/* compute width of the status text */
 	w = 0;
 	i = -1;
@@ -823,10 +846,19 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 			if (!isCode) {
 				isCode = 1;
 				text[i] = '\0';
-				w += TEXTW(text) - lrpad;
+                int tw = TEXTW(text) - lrpad;
 				text[i] = '^';
-				if (text[++i] == 'f')
-					w += atoi(text + ++i);
+				w += tw;
+                status_width[csi] += tw;
+				if (text[++i] == 'f') { 
+					int tw = atoi(text + ++i);
+                    w += tw;
+                    status_width[csi] += tw;
+                } else if (text[i] == 'n') {
+                    if (++csi >= STATUS_WIDTH_SIZE) {
+                        csi = STATUS_WIDTH_SIZE - 1;
+                    }
+                }
 			} else {
 				isCode = 0;
 				text = text + i + 1;
@@ -841,9 +873,11 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 	text = p;
 
 	w += 2; /* 1px padding on both sides */
+    total_status_width = w;
+    if (status_width[0])   ++status_width[0];
+    if (status_width[csi]) ++status_width[csi];
 	ret = m->ww - w;
 	x = m->ww - w - getsystraywidth();
-    status_width = w;
 
 	drw_setscheme(drw, scheme[LENGTH(colors)]);
 	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
@@ -888,11 +922,10 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 					int rw = atoi(text + ++i);
 					while (text[++i] != ',');
 					int rh = atoi(text + ++i);
-
 					drw_rect(drw, rx + x, ry, rw, rh, 1, 0);
 				} else if (text[i] == 'f') {
 					x += atoi(text + ++i);
-				}
+                }
 			}
 
 			text = text + i + 1;
@@ -1886,6 +1919,10 @@ setup(void)
 
 	/* clean up any zombies (inherited from .xinitrc etc) immediately */
 	while (waitpid(-1, NULL, WNOHANG) > 0);
+
+    for (int i = 0; i < STATUS_WIDTH_SIZE; ++i) {
+        status_width[i] = 0;
+    }
 
 	/* init screen */
 	screen = DefaultScreen(dpy);

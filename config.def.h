@@ -43,17 +43,19 @@ static const Rule rules[] = {
 	 *	WM_CLASS(STRING) = instance, class
 	 *	WM_NAME(STRING) = title
 	 */
-	/* class                instance    title       tags mask   iscentered      isfloating      monitor */
-	{ "Firefox",            NULL,       NULL,       1 << 8,     0,              0,              -1 },
-    { "firefox",            "Alert",    NULL,       0,          1,              1,              -1 },
-	{ "fnb_release",        NULL,       NULL,       0,          0,              1,              -1 },
-    { "gnome-calculator",   NULL,       NULL,       0,          1,              1,              -1 },
-    { "Galculator",         NULL,       NULL,       0,          1,              1,              -1 },
-    { "Vinagre",            NULL,       NULL,       0,          1,              1,              -1 },
-    { "Mumble",             "mumble",   NULL,       0,          1,              1,              -1 },
-    { "Eww",                "eww",      NULL,       0,          1,              1,              -1 },
-    { "Osmo",               "osmo",     NULL,       0,          1,              1,              -1 },
-    { "codelite-terminal",  NULL,       NULL,       0,          1,              1,              -1 },
+	/* class                instance            title       tags mask   iscentered      isfloating      monitor */
+	{ "Firefox",            NULL,               NULL,       1 << 8,     0,              0,              -1 },
+    { "firefox",            "Alert",            NULL,       0,          1,              1,              -1 },
+	{ "fnb_release",        NULL,               NULL,       0,          0,              1,              -1 },
+    { "gnome-calculator",   NULL,               NULL,       0,          1,              1,              -1 },
+    { "Galculator",         NULL,               NULL,       0,          1,              1,              -1 },
+    { "Vinagre",            NULL,               NULL,       0,          1,              1,              -1 },
+    { "Mumble",             "mumble",           NULL,       0,          1,              1,              -1 },
+    { "Eww",                "eww",              NULL,       0,          1,              1,              -1 },
+    { "Osmo",               "osmo",             NULL,       0,          1,              1,              -1 },
+    { "codelite-terminal",  NULL,               NULL,       0,          1,              1,              -1 },
+    { "pavucontrol",        "pavucontrol",      NULL,       0,          1,              1,              -1 },
+    { "missioncenter",      "missioncenter",    NULL,       0,          1,              1,              -1 },
 };
 
 /* layout(s) */
@@ -103,7 +105,9 @@ static const char *calendar[] = { "/home/flynn/scripts/dwm/calendar.sh", NULL };
 static const char *tools1[] = { "/home/flynn/scripts/dwm/tools1.sh", NULL };
 static const char *tools2[] = { "/home/flynn/scripts/dwm/tools2.sh", NULL };
 static const char *tools3[] = { "/home/flynn/scripts/dwm/tools3.sh", NULL };
-static const char *status_tool[] = { "/home/flynn/scripts/dwm/status_tool.sh", NULL };
+static const char *status_tool1[] = { "/home/flynn/scripts/dwm/status_tool1.sh", NULL };
+static const char *status_tool2[] = { "/home/flynn/scripts/dwm/status_tool2.sh", NULL };
+static const char *status_tool3[] = { "/home/flynn/scripts/dwm/status_tool3.sh", NULL };
 static const char *lockscreen[] = { "/home/flynn/scripts/dwm/lockscreen.sh", NULL };
 
 static const Key keys[] = {
@@ -180,16 +184,18 @@ static const Key keys[] = {
 /* button definitions */
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 static const Button buttons[] = {
-	/* click                event mask      button          function        argument */
-	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
-	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
-	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
-	{ ClkStatusText,        0,              Button1,        spawn,          {.v = status_tool } },
-	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
-	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
-	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
-	{ ClkTagBar,            0,              Button1,        view,           {0} },
-	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
-	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
-	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
+	/* click                event mask      button          index   function        argument */
+	{ ClkLtSymbol,          0,              Button1,        0,      setlayout,      {0} },
+	{ ClkLtSymbol,          0,              Button3,        0,      setlayout,      {.v = &layouts[2]} },
+	{ ClkWinTitle,          0,              Button2,        0,      zoom,           {0} },
+	{ ClkStatusText,        0,              Button1,        0,      spawn,          {.v = status_tool1 } },
+	{ ClkStatusText,        0,              Button1,        2,      spawn,          {.v = status_tool2 } },
+	{ ClkStatusText,        0,              Button1,        3,      spawn,          {.v = status_tool3 } },
+	{ ClkClientWin,         MODKEY,         Button1,        0,      movemouse,      {0} },
+	{ ClkClientWin,         MODKEY,         Button2,        0,      togglefloating, {0} },
+	{ ClkClientWin,         MODKEY,         Button3,        0,      resizemouse,    {0} },
+	{ ClkTagBar,            0,              Button1,        0,      view,           {0} },
+	{ ClkTagBar,            0,              Button3,        0,      toggleview,     {0} },
+	{ ClkTagBar,            MODKEY,         Button1,        0,      tag,            {0} },
+	{ ClkTagBar,            MODKEY,         Button3,        0,      toggletag,      {0} },
 };
