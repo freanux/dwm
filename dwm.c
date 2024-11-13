@@ -166,9 +166,6 @@ struct Systray {
 };
 
 /* function declarations */
-static void dwindle(Monitor *mon);
-static void spiral(Monitor *mon);
-
 static void applyrules(Client *c);
 static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
 static void arrange(Monitor *m);
@@ -191,8 +188,12 @@ static Monitor *dirtomon(int dir);
 static void drawbar(Monitor *m);
 static void drawbars(void);
 static int drawstatusbar(Monitor *m, int bh, char* text);
+static void elephant(Monitor *m);
 static void enternotify(XEvent *e);
+static void export(const Arg *arg);
 static void expose(XEvent *e);
+static void fibonacci(Monitor *m);
+static void fibonacci_WORKING(Monitor *m);
 static void focus(Client *c);
 static void focusin(XEvent *e);
 static void focusmon(const Arg *arg);
@@ -325,82 +326,6 @@ static Window root, wmcheckwin;
 struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
 
 /* function implementations */
-void fibonacci(Monitor *mon, int s) {
-	unsigned int i, n, nx, ny, nw, nh;
-	Client *c;
-
-	for(n = 0, c = nexttiled(mon->clients); c; c = nexttiled(c->next), n++);
-	if(n == 0)
-		return;
-	if(n == 1){
-		c = nexttiled(mon->clients);
-		resize(c, mon->wx + mon->gappx, mon->wy + mon->gappx, (mon->ww - 2 *
-					c->bw) - 2 * mon->gappx, (mon->wh - 2 * c->bw) - 2 *
-				mon->gappx, 0);
-		return;
-	}
-
-	nx = mon->wx;
-	ny = mon->gappx;
-	nw = mon->ww;
-	nh = mon->wh;
-
-	for(i = 0, c = nexttiled(mon->clients); c; c = nexttiled(c->next)) {
-		if((i % 2 && nh / 2 > 2 * c->bw)
-			|| (!(i % 2) && nw / 2 > 2 * c->bw)) {
-			if(i < n - 1) {
-				if(i % 2)
-					nh /= 2;
-				else
-					nw /= 2;
-				if((i % 4) == 2 && !s)
-					nx += nw;
-				else if((i % 4) == 3 && !s)
-					ny += nh;
-			}
-			if((i % 4) == 0) {
-				if(s)
-					ny += nh;
-				else
-					ny -= nh;
-			}
-			else if((i % 4) == 1)
-				nx += nw;
-			else if((i % 4) == 2)
-				ny += nh;
-			else if((i % 4) == 3) {
-				if(s)
-					nx += nw;
-				else
-					nx -= nw;
-			}
-			if(i == 0)
-			{
-				if(n != 1)
-					nw = mon->ww * mon->mfact;
-				ny = mon->wy + mon->gappx;
-			}
-			else if(i == 1)
-				nw = mon->ww - nw - mon->gappx;
-			i++;
-		}
-		if((s == 0 && i <= 4 && (i!=2 || n==2)) || (s==1 && (i%2==1 || i==n)))
-			resize(c, nx + mon->gappx, ny, nw - 2 * (c->bw) - mon->gappx, nh - 2 * (c->bw) - 2*mon->gappx, False);
-		else
-			resize(c, nx + mon->gappx, ny, nw - 2 * (c->bw) - mon->gappx, nh - 2 * (c->bw) - mon->gappx, False);
-	}
-}
-
-void
-dwindle(Monitor *mon) {
-	fibonacci(mon, 1);
-}
-
-void
-spiral(Monitor *mon) {
-	fibonacci(mon, 0);
-}
-
 void
 applyrules(Client *c)
 {
@@ -1090,6 +1015,52 @@ drawbars(void)
 }
 
 void
+elephant(Monitor *m)
+{
+    unsigned int n, wx, wy, ww, wh;
+    unsigned int i, wlr, wm, h, th;
+    Client *c;
+
+	for(n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
+    if (n < 3) {
+        tile(m);
+        return;
+    }
+
+    wx = m->wx + m->gappx;
+    wy = m->wy + m->gappx;
+    ww = m->ww - 2 * m->gappx - 2 * borderpx;
+    th = wh = m->wh - 2 * m->gappx - 2 * borderpx;
+
+    wm = ww * m->mfact;
+    wlr = (ww - wm) / 2;
+    wm = ww - wlr * 2;
+
+	for (i = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++) {
+        switch (i) {
+            case 0:
+                resize(c, wx + wlr, wy, wm, wh, 0);
+                break;
+            case 1:
+                resize(c, wx, wy, wlr - m->gappx - 2 * borderpx, wh, 0);
+                wx += wlr + wm;
+                break;
+            default:
+                // stacking
+                if (i == n - 1) {
+                    h = th + m->gappx + 2 * borderpx;
+                } else if (i == 2) {
+                    h = (wh + m->gappx + borderpx) / (n - i);
+                }
+                resize(c, wx + m->gappx + 2 * borderpx, wy, wlr - m->gappx - 2 * borderpx, h - m->gappx - 2 * borderpx, 0);
+                wy += h;
+                th -= h;
+                break;
+        }
+    }
+}
+
+void
 enternotify(XEvent *e)
 {
 	Client *c;
@@ -1111,6 +1082,19 @@ enternotify(XEvent *e)
 }
 
 void
+export(const Arg *arg) {
+    FILE *f = fopen(dwmfile, "w");
+    if (f) {
+        fprintf(f, "mx = %d, my = %d, mw = %d, mh = %d\n", selmon->mx, selmon->my, selmon->mw, selmon->mh);
+        fprintf(f, "wx = %d, wy = %d, ww = %d, wh = %d\n", selmon->wx, selmon->wy, selmon->ww, selmon->wh);
+        fprintf(f, "nmaster = %d\n", selmon->nmaster);
+        fprintf(f, "mfact   = %f\n", selmon->mfact);
+        fprintf(f, "gappx   = %d\n", selmon->gappx);
+        fclose(f);
+    }
+}
+
+void
 expose(XEvent *e)
 {
 	Monitor *m;
@@ -1121,6 +1105,136 @@ expose(XEvent *e)
 		if (m == selmon)
 			updatesystray();
 	}
+}
+
+void fibonacci(Monitor *mon) {
+	unsigned int i, n, nx, ny, nw, nh;
+	Client *c;
+
+	for(n = 0, c = nexttiled(mon->clients); c; c = nexttiled(c->next), n++);
+	if(n == 0)
+		return;
+	if(n == 1){
+		c = nexttiled(mon->clients);
+		resize(c, mon->wx + mon->gappx, mon->wy + mon->gappx, (mon->ww - 2 *
+					c->bw) - 2 * mon->gappx, (mon->wh - 2 * c->bw) - 2 *
+				mon->gappx, 0);
+		return;
+	}
+
+	nx = mon->wx;
+	ny = mon->gappx;
+	nw = mon->ww;
+	nh = mon->wh;
+
+	for(i = 0, c = nexttiled(mon->clients); c; c = nexttiled(c->next)) {
+		if((i % 2 && nh / 2 > 2 * c->bw)
+			|| (!(i % 2) && nw / 2 > 2 * c->bw)) {
+			if(i < n - 1) {
+				if(i % 2)
+					nh /= 2;
+				else
+					nw /= 2;
+				if((i % 4) == 2)
+					nx += nw;
+				else if((i % 4) == 3)
+					ny += nh;
+			}
+			if((i % 4) == 0) {
+				ny -= nh;
+			}
+			else if((i % 4) == 1)
+				nx += nw;
+			else if((i % 4) == 2)
+				ny += nh;
+			else if((i % 4) == 3) {
+				nx -= nw;
+			}
+			if(i == 0)
+			{
+				if(n != 1)
+					nw = mon->ww * mon->mfact;
+				ny = mon->wy + mon->gappx;
+			}
+			else if(i == 1)
+				nw = mon->ww - nw - mon->gappx;
+			i++;
+		}
+		if(i <= 4 && (i!=2 || n==2))
+			resize(c, nx + mon->gappx, ny, nw - 2 * (c->bw) - mon->gappx, nh - 2 * (c->bw) - 2*mon->gappx, False);
+		else
+			resize(c, nx + mon->gappx, ny, nw - 2 * (c->bw) - mon->gappx, nh - 2 * (c->bw) - mon->gappx, False);
+	}
+}
+
+void fibonacci_WORKING(Monitor *m) {
+    unsigned int n, nm, wx, wy, ww, wh, i;
+    unsigned int wl, wr, w, h, squl, sqrl, s;
+    Client *c;
+
+	for(n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
+	if (n == 0) {
+		return;
+    }
+
+    wx = m->wx + m->gappx;
+    wy = m->wy + m->gappx;
+    ww = m->ww - 2 * m->gappx - 2 * borderpx;
+    wh = m->wh - 2 * m->gappx - 2 * borderpx;
+
+    if (n == 1) {
+        c = nexttiled(m->clients);
+        resize(c, wx, wy, ww, wh, 0);
+        return;
+    }
+    
+    s = (m->ww > m->wh ? 0 : 1);
+    squl = sqrl = 0;
+
+    nm = n <= m->nmaster ? n - 1 : m->nmaster;
+    wr = nm ? m->ww * m->mfact : 0;
+    wl = nm ? wr / nm : m->ww;
+    w = wl - m->gappx - 2 * borderpx;
+
+	for (i = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++) {
+        if (i < nm) {
+            resize(c, wx, wy, w, wh, 0);
+            wx += wl;
+        } else {
+            if (i == nm) {
+                w = ww - wr;
+                h = wh; 
+            }
+            if (i < n - 1) {
+                if (s == 0) {
+                    /* horizontal split */
+                    if (squl == 0) {
+                        /* upper */
+                        h = wh / 2;
+                        resize(c, wx, wy, w, h, 0);
+                        wy += h;
+                    } else {
+                        /* lower */
+                        resize(c, wx, wy, w, h, 0);
+                    }
+                    squl = 1 - squl; // alternate upper/lower
+                } else {
+                    /* vertical split */
+                    if (sqrl == 0) {
+                        /* right */
+                        w = ww / 2;
+                        resize(c, wx, wy, w, h, 0);
+                        wx -= w;
+                    } else {
+                        /* left */
+                        resize(c, wx, wy, w, h, 0);
+                    }
+                    sqrl = 1 - sqrl; // alternate right/left
+                }
+            }
+            s = 1 - s; // alternate h/v
+        }
+    }
 }
 
 void
@@ -1490,7 +1604,8 @@ monocle(Monitor *m)
 	if (n > 0) /* override layout symbol */
 		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
 	for (c = nexttiled(m->clients); c; c = nexttiled(c->next))
-		resize(c, m->wx, m->wy, m->ww - 2 * c->bw, m->wh - 2 * c->bw, 0);
+		//resize(c, m->wx + 1, m->wy, m->ww - 2 * c->bw - 1, m->wh - 2 * c->bw, 0);
+		resize(c, m->wx - c->bw, m->wy - c->bw, m->ww, m->wh, 0);
 }
 
 void
@@ -2178,29 +2293,46 @@ tagtoprev(const Arg *arg)
 void
 tile(Monitor *m)
 {
-	unsigned int i, n, h, mw, my, ty;
-	Client *c;
+    unsigned int n, nm, wx, wy, ww, wh;
+    unsigned int i, wl, wr, w, h, th;
+    Client *c;
 
-	for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
-	if (n == 0)
+	for(n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
+	if (n == 0) {
 		return;
+    }
 
-	if (n > m->nmaster)
-		mw = m->nmaster ? m->ww * m->mfact : 0;
-	else
-		mw = m->ww - m->gappx;
-	for (i = 0, my = ty = m->gappx, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++)
-			if (i < m->nmaster) {
-			h = (m->wh - my) / (MIN(n, m->nmaster) - i) - m->gappx;
-			resize(c, m->wx + m->gappx, m->wy + my, mw - (2*c->bw) - m->gappx, h - (2*c->bw), 0);
-			if (my + HEIGHT(c) + m->gappx < m->wh)
-				my += HEIGHT(c) + m->gappx;
-		} else {
-			h = (m->wh - ty) / (n - i) - m->gappx;
-			resize(c, m->wx + mw + m->gappx, m->wy + ty, m->ww - mw - (2*c->bw) - 2*m->gappx, h - (2*c->bw), 0);
-			if (ty + HEIGHT(c) + m->gappx < m->wh)
-				ty += HEIGHT(c) + m->gappx;
-		}
+    wx = m->wx + m->gappx;
+    wy = m->wy + m->gappx;
+    ww = m->ww - 2 * m->gappx - 2 * borderpx;
+    th = wh = m->wh - 2 * m->gappx - 2 * borderpx;
+
+    if (n == 1) {
+        c = nexttiled(m->clients);
+        resize(c, wx, wy, ww, wh, 0);
+        return;
+    }
+
+    nm = n <= m->nmaster ? n - 1 : m->nmaster;
+    wr = nm ? m->ww * m->mfact : 0;
+    wl = nm ? wr / nm : m->ww;
+    w = wl - m->gappx - 2 * borderpx;
+
+	for (i = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++) {
+        if (i < nm) {
+            resize(c, wx, wy, w, wh, 0);
+            wx += wl;
+        } else {
+            if (i == n - 1) {
+                h = th + m->gappx + 2 * borderpx;
+            } else if (i == nm) {
+                h = (wh + m->gappx + borderpx) / (n - i);
+            }
+            resize(c, wx, wy, ww - wr, h - m->gappx - 2 * borderpx, 0);
+            wy += h;
+            th -= h;
+        }
+    }
 }
 
 void
